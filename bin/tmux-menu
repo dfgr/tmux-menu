@@ -1,0 +1,184 @@
+#!/usr/bin/env bash
+
+# ==============================================================================
+# TMUX Session Manager (tmux-menu)
+# Lightweight, interactive TUI for managing tmux sessions upon SSH login
+# ==============================================================================
+
+# ANSI Renk Kodları
+BOLD="\033[1m"
+CYAN="\033[1;36m"
+GREEN="\033[1;32m"
+YELLOW="\033[1;33m"
+RED="\033[1;31m"
+BLUE="\033[1;34m"
+MAGENTA="\033[1;35m"
+GRAY="\033[0;90m"
+RESET="\033[0m"
+
+# Başlık (Ortam değişkeni ile özelleştirilebilir)
+MENU_TITLE="${TMUX_MENU_TITLE:-  🚀 TMUX OTURUM YÖNETİCİSİ}"
+
+# Varsayılan çalışma dizini kontrolü
+if [ -n "$TMUX_DEFAULT_DIR" ] && [ -d "$TMUX_DEFAULT_DIR" ]; then
+    cd "$TMUX_DEFAULT_DIR" 2>/dev/null || true
+elif [ -d "$HOME" ]; then
+    cd "$HOME" 2>/dev/null || true
+fi
+
+while true; do
+    # Terminal genişliğini algıla (Mobil ve PC uyumu)
+    COLS=$(tput cols 2>/dev/null || echo 66)
+    [ -z "$COLS" ] && COLS=66
+    if [ "$COLS" -gt 66 ]; then
+        WIDTH=66
+    elif [ "$COLS" -lt 40 ]; then
+        WIDTH=40
+    else
+        WIDTH=$COLS
+    fi
+    
+    # UTF-8 Kenarlık Çizgisi
+    LINE=$(printf "%*s" "$((WIDTH - 2))" "" | sed "s/ /─/g")
+
+    clear 2>/dev/null || true
+    echo -e "${CYAN}${BOLD}┌${LINE}┐${RESET}"
+    echo -e "${CYAN}${BOLD}│ $(printf "%-$((WIDTH - 4))s" "$MENU_TITLE") │${RESET}"
+    echo -e "${CYAN}${BOLD}├${LINE}┤${RESET}"
+
+    # Tmux oturumlarını çek
+    sessions=()
+    idx=1
+
+    if command -v tmux >/dev/null 2>&1; then
+        raw_sessions=$(tmux list-sessions -F "#{session_name}|#{session_windows}|#{session_attached}" 2>/dev/null || true)
+        
+        if [ -n "$raw_sessions" ]; then
+            echo -e "${BOLD}│  AKTİF OTURUMLAR:${RESET}"
+            while IFS="|" read -r s_name s_wins s_att; do
+                [ -z "$s_name" ] && continue
+                sessions+=("$s_name")
+                
+                # Bağlantı durumu rozeti
+                if [ "$s_att" -ge 1 ] 2>/dev/null; then
+                    att_status="${YELLOW}[Bağlı: $s_att]${RESET}"
+                else
+                    att_status="${GREEN}[Boşta]${RESET}"
+                fi
+                
+                win_str="${s_wins} pencere"
+                row_content=$(printf " [%d] %-18s (%-9s) %b" "$idx" "$s_name" "$win_str" "$att_status")
+                echo -e "│ ${BOLD}${GREEN}${row_content}${RESET}"
+                idx=$((idx + 1))
+            done <<< "$raw_sessions"
+        else
+            echo -e "│ ${GRAY} (Şu an çalışan aktif bir tmux oturumu yok)${RESET}"
+        fi
+    else
+        echo -e "│ ${RED} Hata: tmux kurulu değil! Lütfen tmux kurun.${RESET}"
+    fi
+
+    echo -e "${CYAN}${BOLD}├${LINE}┤${RESET}"
+    echo -e "│ ${MAGENTA}${BOLD}[n]${RESET} Yeni Oturum Başlat        │ ${RED}${BOLD}[k]${RESET} Oturum Kapat (Kill)"
+    echo -e "│ ${BLUE}${BOLD}[r]${RESET} Oturumu Yeniden Adlandır  │ ${YELLOW}${BOLD}[b]${RESET} Normal Bash Terminali"
+    echo -e "│ ${GRAY}${BOLD}[q]${RESET} Çıkış (SSH Kapat)         │ ${CYAN}${BOLD}[Enter]${RESET} Hızlı Bağlan"
+    echo -e "${CYAN}${BOLD}└${LINE}┘${RESET}"
+
+    total_sessions=${#sessions[@]}
+    if [ "$total_sessions" -gt 0 ]; then
+        def_prompt="1"
+        prompt_text="👉 Seçiminiz [1-${total_sessions} / n / k / r / b / q] (Varsayılan: 1): "
+    else
+        def_prompt="n"
+        prompt_text="👉 Seçiminiz [n: Yeni, b: Bash, q: Çıkış] (Varsayılan: n): "
+    fi
+
+    echo -ne "${BOLD}${prompt_text}${RESET}"
+    read -r choice
+    [ -z "$choice" ] && choice="$def_prompt"
+
+    case "$choice" in
+        [0-9]*)
+            if [ "$choice" -ge 1 ] && [ "$choice" -le "$total_sessions" ] 2>/dev/null; then
+                target_session="${sessions[$((choice - 1))]}"
+                echo -e "\n${GREEN}» '$target_session' oturumuna bağlanılıyor...${RESET}"
+                tmux attach-session -t "$target_session"
+            else
+                echo -e "\n${RED}Geçersiz oturum numarası!${RESET}"
+                sleep 1.2
+            fi
+            ;;
+        n|N)
+            echo -ne "\n${BOLD}Yeni oturum adı (Örn: bot, api, dev) [Enter: otomatik isim]: ${RESET}"
+            read -r new_name
+            if [ -z "$new_name" ]; then
+                new_name="session-$(date +%H%M)"
+            fi
+            new_name=$(echo "$new_name" | tr " " "_")
+            echo -e "${GREEN}» '$new_name' oturumu açılıyor...${RESET}"
+            tmux new-session -A -s "$new_name"
+            ;;
+        k|K)
+            if [ "$total_sessions" -eq 0 ]; then
+                echo -e "\n${RED}Kapatılacak oturum bulunamadı!${RESET}"
+                sleep 1.2
+                continue
+            fi
+            echo -ne "\n${RED}${BOLD}Kapatmak istediğiniz oturum numarası [1-${total_sessions}]: ${RESET}"
+            read -r kill_target
+            if [ "$kill_target" -ge 1 ] && [ "$kill_target" -le "$total_sessions" ] 2>/dev/null; then
+                target_name="${sessions[$((kill_target - 1))]}"
+            else
+                target_name="$kill_target"
+            fi
+            if [ -n "$target_name" ]; then
+                echo -ne "${YELLOW}'$target_name' oturumu tamamen kapatılsın mı? (e/H): ${RESET}"
+                read -r confirm
+                if [[ "$confirm" =~ ^[eEyY]$ ]]; then
+                    tmux kill-session -t "$target_name" 2>/dev/null && \
+                        echo -e "${GREEN}✓ '$target_name' oturumu kapatıldı.${RESET}" || \
+                        echo -e "${RED}Oturum kapatılamadı.${RESET}"
+                    sleep 1
+                fi
+            fi
+            ;;
+        r|R)
+            if [ "$total_sessions" -eq 0 ]; then
+                echo -e "\n${RED}Yeniden adlandırılacak oturum bulunamadı!${RESET}"
+                sleep 1.2
+                continue
+            fi
+            echo -ne "\n${BOLD}Adını değiştirmek istediğiniz oturum no [1-${total_sessions}]: ${RESET}"
+            read -r ren_target
+            if [ "$ren_target" -ge 1 ] && [ "$ren_target" -le "$total_sessions" ] 2>/dev/null; then
+                old_name="${sessions[$((ren_target - 1))]}"
+            else
+                old_name="$ren_target"
+            fi
+            if [ -n "$old_name" ]; then
+                echo -ne "${BOLD}'$old_name' için yeni oturum adı: ${RESET}"
+                read -r ren_new
+                ren_new=$(echo "$ren_new" | tr " " "_")
+                if [ -n "$ren_new" ]; then
+                    tmux rename-session -t "$old_name" "$ren_new" 2>/dev/null && \
+                        echo -e "${GREEN}✓ Oturum adı '$ren_new' olarak güncellendi.${RESET}" || \
+                        echo -e "${RED}İşlem başarısız oldu.${RESET}"
+                    sleep 1
+                fi
+            fi
+            ;;
+        b|B)
+            echo -e "\n${YELLOW}» Normal Bash terminaline geçildi.${RESET}"
+            echo -e "${GRAY}(İstediğiniz zaman 'menu' veya 'tm' yazarak bu menüye dönebilirsiniz)${RESET}\n"
+            break
+            ;;
+        q|Q|0)
+            echo -e "\n${GRAY}Bağlantı kapatılıyor...${RESET}"
+            exit 0
+            ;;
+        *)
+            echo -e "\n${RED}Geçersiz seçim!${RESET}"
+            sleep 1
+            ;;
+    esac
+done
