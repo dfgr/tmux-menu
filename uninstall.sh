@@ -36,4 +36,12 @@ for RC_FILE in "$HOME/.bashrc" "$HOME/.zshrc"; do
     fi
 done
 
+# 3. ~/.tmux.conf dosyasından bloğu temizle
+if [ -f "$HOME/.tmux.conf" ]; then
+    if grep -q "TMUX Session Manager (Fare ve Scroll Desteği)" "$HOME/.tmux.conf"; then
+        sed -i '/# --- TMUX Session Manager (Fare ve Scroll Desteği) ---/,/# ---------------------------------------------------/d' "$HOME/.tmux.conf"
+        echo -e "${GREEN}✓ ~/.tmux.conf dosyasından fare ayarları temizlendi.${RESET}"
+    fi
+fi
+
 echo -e "${GREEN}${BOLD}✓ TMUX Session Manager başarıyla kaldırıldı.${RESET}\n"

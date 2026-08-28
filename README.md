@@ -33,9 +33,10 @@
 
 * 📱 **Duyarlı & Mobil Uyumlu:** Telefon (Termius, JuiceSSH) ve PC geniş ekranlarına göre pencere boyutunu (`40` - `66` sütun) otomatik ölçekler.
 * ⚡ **Sıfır Ekstra Bağımlılık:** Sadece standart **Bash** ve **tmux** kullanır. Python, Node.js veya ağır kütüphanelere ihtiyaç duymaz.
+* 📜 **Varsayılan Scroll & Fare Desteği:** Tmux oturumlarında fare ile kaydırma (`set -g mouse on`) otomatik olarak aktiftir. Metin kopyalamak için `Shift` tuşuna basılı tutarak fareyle seçebilirsiniz.
 * 🔒 **SSH & Otomasyon Dostu:** SCP, SFTP, rsync, Ansible veya `ssh user@host "command"` gibi interaktif olmayan çağrıları **kesinlikle bozmaz** (TTY kontrolü yapar).
 * 🔄 **Canlı Durum Rozetleri:** Oturumlara başka bir istemcinin bağlı olup olmadığını (`[Bağlı: 1]`, `[Boşta]`) ve pencere sayısını anlık gösterir.
-* ⌨️ **Hızlı Kısayollar:** Tmux içindeyken `d` veya `detach` yazarak kolayca ayrılma, bash terminalindeyken `menu` veya `tm` yazarak menüyü tekrar çağırma.
+* ⌨️ **Hızlı Kısayollar:** Ana seçim ekranında `Ctrl + C` veya `q` ile SSH bağlantısını anında kapatma, tmux içindeyken `d` veya `detach` yazarak kolayca menüye dönme.
 
 ---
 
@@ -99,7 +100,11 @@ git clone https://github.com/dfgr/tmux-menu.git ~/.tmux-menu && ~/.tmux-menu/ins
 | **`[k]`** | Seçtiğiniz oturumu onay alarak arka planda tamamen sonlandırır (`kill-session`). |
 | **`[r]`** | Mevcut bir oturumun adını günceller (`rename-session`). |
 | **`[b]`** | Menüyü geçerek standart Bash terminaline düşer. |
-| **`[q]`** | SSH bağlantısını sonlandırıp güvenle çıkar. |
+| **`[q]` / `Ctrl + C`** | Ana seçim ekranındayken SSH bağlantısını sonlandırıp güvenle çıkar. |
+
+### Fare ve Metin Seçimi
+* **Kaydırma (Scroll):** Fare tekerleği ile doğrudan yukarı/aşağı kaydırabilirsiniz.
+* **Metin Kopyalama:** `Shift` tuşuna basılı tutarak fareyle metni seçtiğinizde terminalin yerel panosuna kopyalayabilirsiniz (macOS'ta `Fn` veya `Option`).
 
 ### Tmux ve Terminal İçi Komutlar
 * **`menu`** veya **`tm`** : Bash terminalindeyken oturum menüsünü tekrar açar.

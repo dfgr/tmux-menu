@@ -26,7 +26,26 @@ elif [ -d "$HOME" ]; then
     cd "$HOME" 2>/dev/null || true
 fi
 
+# Tmux oturumlarında varsayılan olarak fare ve kaydırma (scroll) desteğini etkinleştir
+if command -v tmux >/dev/null 2>&1; then
+    tmux set -g mouse on 2>/dev/null || true
+fi
+
+# SSH oturumunu ve ana kabuğu sonlandırma fonksiyonu
+exit_session() {
+    echo -e "\n${GRAY}Bağlantı kapatılıyor...${RESET}"
+    # SSH bağlantısının bağlı olduğu ana kabuğu sonlandır
+    if [ -n "$PPID" ] && [ "$PPID" -gt 1 ]; then
+        kill -HUP "$PPID" 2>/dev/null || kill -TERM "$PPID" 2>/dev/null || exit 0
+    else
+        exit 0
+    fi
+}
+
 while true; do
+    # Ana seçim ekranındayken Ctrl+C basıldığında SSH bağlantısını otomatik sonlandır
+    trap exit_session INT
+
     # Terminal genişliğini algıla (Mobil ve PC uyumu)
     COLS=$(tput cols 2>/dev/null || echo 66)
     [ -z "$COLS" ] && COLS=66
@@ -94,7 +113,7 @@ while true; do
     fi
 
     echo -ne "${BOLD}${prompt_text}${RESET}"
-    read -r choice
+    read -r choice || exit_session
     [ -z "$choice" ] && choice="$def_prompt"
 
     case "$choice" in
@@ -102,6 +121,7 @@ while true; do
             if [ "$choice" -ge 1 ] && [ "$choice" -le "$total_sessions" ] 2>/dev/null; then
                 target_session="${sessions[$((choice - 1))]}"
                 echo -e "\n${GREEN}» '$target_session' oturumuna bağlanılıyor...${RESET}"
+                tmux set -g mouse on 2>/dev/null || true
                 tmux attach-session -t "$target_session"
             else
                 echo -e "\n${RED}Geçersiz oturum numarası!${RESET}"
@@ -109,23 +129,27 @@ while true; do
             fi
             ;;
         n|N)
+            # Alt menüdeyken Ctrl+C basılırsa ana menüye dön
+            trap 'echo ""; continue' INT
             echo -ne "\n${BOLD}Yeni oturum adı (Örn: bot, api, dev) [Enter: otomatik isim]: ${RESET}"
-            read -r new_name
+            read -r new_name || continue
             if [ -z "$new_name" ]; then
                 new_name="session-$(date +%H%M)"
             fi
             new_name=$(echo "$new_name" | tr " " "_")
             echo -e "${GREEN}» '$new_name' oturumu açılıyor...${RESET}"
+            tmux set -g mouse on 2>/dev/null || true
             tmux new-session -A -s "$new_name"
             ;;
         k|K)
+            trap 'echo ""; continue' INT
             if [ "$total_sessions" -eq 0 ]; then
                 echo -e "\n${RED}Kapatılacak oturum bulunamadı!${RESET}"
                 sleep 1.2
                 continue
             fi
             echo -ne "\n${RED}${BOLD}Kapatmak istediğiniz oturum numarası [1-${total_sessions}]: ${RESET}"
-            read -r kill_target
+            read -r kill_target || continue
             if [ "$kill_target" -ge 1 ] && [ "$kill_target" -le "$total_sessions" ] 2>/dev/null; then
                 target_name="${sessions[$((kill_target - 1))]}"
             else
@@ -133,7 +157,7 @@ while true; do
             fi
             if [ -n "$target_name" ]; then
                 echo -ne "${YELLOW}'$target_name' oturumu tamamen kapatılsın mı? (e/H): ${RESET}"
-                read -r confirm
+                read -r confirm || continue
                 if [[ "$confirm" =~ ^[eEyY]$ ]]; then
                     tmux kill-session -t "$target_name" 2>/dev/null && \
                         echo -e "${GREEN}✓ '$target_name' oturumu kapatıldı.${RESET}" || \
@@ -143,13 +167,14 @@ while true; do
             fi
             ;;
         r|R)
+            trap 'echo ""; continue' INT
             if [ "$total_sessions" -eq 0 ]; then
                 echo -e "\n${RED}Yeniden adlandırılacak oturum bulunamadı!${RESET}"
                 sleep 1.2
                 continue
             fi
             echo -ne "\n${BOLD}Adını değiştirmek istediğiniz oturum no [1-${total_sessions}]: ${RESET}"
-            read -r ren_target
+            read -r ren_target || continue
             if [ "$ren_target" -ge 1 ] && [ "$ren_target" -le "$total_sessions" ] 2>/dev/null; then
                 old_name="${sessions[$((ren_target - 1))]}"
             else
@@ -157,7 +182,7 @@ while true; do
             fi
             if [ -n "$old_name" ]; then
                 echo -ne "${BOLD}'$old_name' için yeni oturum adı: ${RESET}"
-                read -r ren_new
+                read -r ren_new || continue
                 ren_new=$(echo "$ren_new" | tr " " "_")
                 if [ -n "$ren_new" ]; then
                     tmux rename-session -t "$old_name" "$ren_new" 2>/dev/null && \
@@ -170,11 +195,11 @@ while true; do
         b|B)
             echo -e "\n${YELLOW}» Normal Bash terminaline geçildi.${RESET}"
             echo -e "${GRAY}(İstediğiniz zaman 'menu' veya 'tm' yazarak bu menüye dönebilirsiniz)${RESET}\n"
+            trap - INT
             break
             ;;
         q|Q|0)
-            echo -e "\n${GRAY}Bağlantı kapatılıyor...${RESET}"
-            exit 0
+            exit_session
             ;;
         *)
             echo -e "\n${RED}Geçersiz seçim!${RESET}"

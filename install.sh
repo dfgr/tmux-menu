@@ -100,6 +100,31 @@ for RC_FILE in "$HOME/.bashrc" "$HOME/.zshrc"; do
     fi
 done
 
+# 4. ~/.tmux.conf dosyasında fare ve kaydırma (scroll) desteğini etkinleştir
+TMUX_CONF="$HOME/.tmux.conf"
+if [ ! -f "$TMUX_CONF" ]; then
+    cat << 'EOF' > "$TMUX_CONF"
+# TMUX Varsayılan Ayarları (tmux-menu)
+set -g mouse on
+EOF
+    echo -e "${GREEN}✓ ${TMUX_CONF} oluşturuldu ve varsayılan fare/scroll desteği (set -g mouse on) etkinleştirildi.${RESET}"
+elif ! grep -q "mouse on" "$TMUX_CONF"; then
+    cat << 'EOF' >> "$TMUX_CONF"
+
+# --- TMUX Session Manager (Fare ve Scroll Desteği) ---
+set -g mouse on
+# ---------------------------------------------------
+EOF
+    echo -e "${GREEN}✓ ${TMUX_CONF} dosyasına varsayılan fare/scroll desteği (set -g mouse on) eklendi.${RESET}"
+else
+    echo -e "${GREEN}✓ ${TMUX_CONF} içinde fare/scroll desteği zaten aktif.${RESET}"
+fi
+
+# Çalışan tmux sunucusu varsa ayarları anında uygula
+if command -v tmux >/dev/null 2>&1; then
+    tmux set -g mouse on 2>/dev/null || true
+fi
+
 echo -e "\n${CYAN}${BOLD}======================================================${RESET}"
 echo -e "${GREEN}${BOLD} 🎉 Kurulum başarıyla tamamlandı!                      ${RESET}"
 echo -e "${CYAN}${BOLD}======================================================${RESET}"
