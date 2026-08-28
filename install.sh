@@ -125,8 +125,14 @@ if command -v tmux >/dev/null 2>&1; then
     tmux set -g mouse on 2>/dev/null || true
 fi
 
+# 5. SSH girişini hızlandır ve Ubuntu karşılama mesajlarını (MOTD) sessize al
+if [ ! -f "$HOME/.hushlogin" ]; then
+    touch "$HOME/.hushlogin"
+    echo -e "${GREEN}✓ ${HOME}/.hushlogin oluşturuldu (SSH girişleri hızlandırıldı, MOTD gizlendi).${RESET}"
+fi
+
 echo -e "\n${CYAN}${BOLD}======================================================${RESET}"
 echo -e "${GREEN}${BOLD} 🎉 Kurulum başarıyla tamamlandı!                      ${RESET}"
 echo -e "${CYAN}${BOLD}======================================================${RESET}"
 echo -e "Menüyü hemen test etmek için terminalde ${YELLOW}${BOLD}menu${RESET} veya ${YELLOW}${BOLD}tm${RESET} yazabilirsiniz."
-echo -e "SSH ile bir sonraki girişinizde menü otomatik olarak açılacaktır.\n"
+echo -e "SSH ile bir sonraki girişinizde menü doğrudan ve beklemesiz olarak açılacaktır.\n"

@@ -32,7 +32,7 @@
 ## ✨ Özellikler
 
 * 📱 **Duyarlı & Mobil Uyumlu:** Telefon (Termius, JuiceSSH) ve PC geniş ekranlarına göre pencere boyutunu (`40` - `66` sütun) otomatik ölçekler.
-* ⚡ **Sıfır Ekstra Bağımlılık:** Sadece standart **Bash** ve **tmux** kullanır. Python, Node.js veya ağır kütüphanelere ihtiyaç duymaz.
+* ⚡ **Sıfır Ekstra Bağımlılık & Anında Açılış:** Sadece standart **Bash** ve **tmux** kullanır. `~/.hushlogin` ile Ubuntu MOTD/karşılama loglarını atlayarak SSH bağlandığı anda beklemesiz açılır.
 * 📜 **Varsayılan Scroll & Fare Desteği:** Tmux oturumlarında fare ile kaydırma (`set -g mouse on`) otomatik olarak aktiftir. Metin kopyalamak için `Shift` tuşuna basılı tutarak fareyle seçebilirsiniz.
 * 🔒 **SSH & Otomasyon Dostu:** SCP, SFTP, rsync, Ansible veya `ssh user@host "command"` gibi interaktif olmayan çağrıları **kesinlikle bozmaz** (TTY kontrolü yapar).
 * 🔄 **Canlı Durum Rozetleri:** Oturumlara başka bir istemcinin bağlı olup olmadığını (`[Bağlı: 1]`, `[Boşta]`) ve pencere sayısını anlık gösterir.
